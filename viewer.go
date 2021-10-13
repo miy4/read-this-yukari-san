@@ -1,7 +1,9 @@
 package yonde
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -11,11 +13,41 @@ import (
 type Viewer struct {
 	label string
 	size  *size
+	in    string
+	doc   *document
 }
 
 type size struct {
 	cols int
 	rows int
+}
+
+func NewViewer() (Viewer, error) {
+	var r io.Reader
+	var filename string
+
+	// TODO read from stdin
+	if len(os.Args) > 1 {
+		filename = os.Args[1]
+		var err error
+		r, err = os.Open(filename)
+		if err != nil {
+			return Viewer{}, nil
+		}
+	} else {
+		return Viewer{}, errors.New("Missing filename")
+	}
+
+	document, err := open(r)
+	if err != nil {
+		return Viewer{}, err
+	}
+
+	return Viewer{
+		size: &size{},
+		in:   filename,
+		doc:  document,
+	}, nil
 }
 
 func initialMode() Viewer {
@@ -44,7 +76,15 @@ func (v Viewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (v Viewer) drawRows() string {
 	var builder strings.Builder
 	for y := 0; y < v.size.rows; y++ {
-		builder.WriteString("~\n")
+		if y < len(v.doc.lines) {
+			builder.WriteString(v.doc.lines[y])
+		} else {
+			builder.WriteString("~")
+		}
+
+		if y < v.size.rows-1 {
+			builder.WriteString("\n")
+		}
 	}
 	return builder.String()
 }
@@ -54,9 +94,15 @@ func (v Viewer) View() string {
 }
 
 func Run() {
-	p := tea.NewProgram(initialMode(), tea.WithAltScreen())
+	viewer, err := NewViewer()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
+		os.Exit(1)
+	}
+
+	p := tea.NewProgram(viewer, tea.WithAltScreen())
 	if err := p.Start(); err != nil {
-		fmt.Fprintf(os.Stderr, "Alas, there's been an error: %+v", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		os.Exit(1)
 	}
 }
