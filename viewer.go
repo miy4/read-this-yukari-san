@@ -77,6 +77,14 @@ func (v *Viewer) moveDown(lines int) {
 	}
 }
 
+func (v *Viewer) beginingOfRows() {
+	v.rowOffset = 0
+}
+
+func (v *Viewer) endOfRows() {
+	v.rowOffset = v.doc.len() - v.size.rows
+}
+
 func (v Viewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -95,6 +103,10 @@ func (v Viewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			v.moveUp(v.size.rows / 2)
 		case "ctrl+d", "d":
 			v.moveDown(v.size.rows / 2)
+		case "g", "<":
+			v.beginingOfRows()
+		case "G", ">":
+			v.endOfRows()
 		}
 	case tea.WindowSizeMsg:
 		v.size.cols = msg.Width
