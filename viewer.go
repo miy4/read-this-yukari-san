@@ -11,10 +11,11 @@ import (
 )
 
 type Viewer struct {
-	label string
-	size  *size
-	in    string
-	doc   *document
+	label     string
+	size      *size
+	in        string
+	doc       *document
+	rowOffset int
 }
 
 type size struct {
@@ -58,12 +59,28 @@ func (v Viewer) Init() tea.Cmd {
 	return nil
 }
 
+func (v *Viewer) moveUp() {
+	if v.rowOffset > 0 {
+		v.rowOffset--
+	}
+}
+
+func (v *Viewer) moveDown() {
+	if v.rowOffset+v.size.rows < v.doc.len() {
+		v.rowOffset++
+	}
+}
+
 func (v Viewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return v, tea.Quit
+		case "up", "k":
+			v.moveUp()
+		case "down", "j":
+			v.moveDown()
 		}
 	case tea.WindowSizeMsg:
 		v.size.cols = msg.Width
@@ -75,14 +92,15 @@ func (v Viewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (v Viewer) drawRows() string {
 	var builder strings.Builder
-	for y := 0; y < v.size.rows; y++ {
-		if y < len(v.doc.lines) {
-			builder.WriteString(v.doc.lines[y])
+	for screenY := 0; screenY < v.size.rows; screenY++ {
+		docY := screenY + v.rowOffset
+		if docY < v.doc.len() {
+			builder.WriteString(v.doc.lines[docY])
 		} else {
 			builder.WriteString("~")
 		}
 
-		if y < v.size.rows-1 {
+		if screenY < v.size.rows-1 {
 			builder.WriteString("\n")
 		}
 	}

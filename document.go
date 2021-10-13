@@ -22,3 +22,7 @@ func open(r io.Reader) (*document, error) {
 
 	return &document{lines: ln}, nil
 }
+
+func (doc document) len() int {
+	return len(doc.lines)
+}
