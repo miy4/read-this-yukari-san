@@ -3,39 +3,54 @@ package yonde
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type Viewer struct {
 	label string
+	size  *size
+}
+
+type size struct {
+	cols int
+	rows int
 }
 
 func initialMode() Viewer {
-	return Viewer{""}
+	return Viewer{label: "", size: &size{}}
 }
 
-func (m Viewer) Init() tea.Cmd {
+func (v Viewer) Init() tea.Cmd {
 	return nil
 }
 
-func (m Viewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (v Viewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
-			return m, tea.Quit
-		default:
-			m.label = msg.String()
+			return v, tea.Quit
 		}
+	case tea.WindowSizeMsg:
+		v.size.cols = msg.Width
+		v.size.rows = msg.Height
 	}
 
-	return m, nil
+	return v, nil
 }
 
-func (m Viewer) View() string {
-	s := fmt.Sprintf("%s", m.label)
-	return s
+func (v Viewer) drawRows() string {
+	var builder strings.Builder
+	for y := 0; y < v.size.rows; y++ {
+		builder.WriteString("~\n")
+	}
+	return builder.String()
+}
+
+func (v Viewer) View() string {
+	return v.drawRows()
 }
 
 func Run() {
