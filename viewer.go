@@ -59,14 +59,20 @@ func (v Viewer) Init() tea.Cmd {
 	return nil
 }
 
-func (v *Viewer) moveUp() {
-	if v.rowOffset > 0 {
+func (v *Viewer) moveUp(lines int) {
+	for i := 0; i < lines; i++ {
+		if v.rowOffset <= 0 {
+			break
+		}
 		v.rowOffset--
 	}
 }
 
-func (v *Viewer) moveDown() {
-	if v.rowOffset+v.size.rows < v.doc.len() {
+func (v *Viewer) moveDown(lines int) {
+	for i := 0; i < lines; i++ {
+		if v.rowOffset+v.size.rows >= v.doc.len() {
+			break
+		}
 		v.rowOffset++
 	}
 }
@@ -78,9 +84,17 @@ func (v Viewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return v, tea.Quit
 		case "up", "k":
-			v.moveUp()
+			v.moveUp(1)
 		case "down", "j":
-			v.moveDown()
+			v.moveDown(1)
+		case "pgup", "b":
+			v.moveUp(v.size.rows)
+		case "pgdown", " ":
+			v.moveDown(v.size.rows)
+		case "ctrl+u", "u":
+			v.moveUp(v.size.rows / 2)
+		case "ctrl+d", "d":
+			v.moveDown(v.size.rows / 2)
 		}
 	case tea.WindowSizeMsg:
 		v.size.cols = msg.Width
