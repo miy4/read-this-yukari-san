@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import yonde "github.com/miy4/read-this-yukari-san"
 
 func main() {
-	fmt.Println("Hello, world!")
+	yonde.Run()
 }
