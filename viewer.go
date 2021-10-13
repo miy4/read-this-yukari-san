@@ -16,6 +16,7 @@ type Viewer struct {
 	in        string
 	doc       *document
 	rowOffset int
+	curChunk  int
 }
 
 type size struct {
@@ -51,10 +52,6 @@ func NewViewer() (Viewer, error) {
 	}, nil
 }
 
-func initialMode() Viewer {
-	return Viewer{label: "", size: &size{}}
-}
-
 func (v Viewer) Init() tea.Cmd {
 	return nil
 }
@@ -64,6 +61,12 @@ func (v *Viewer) moveUp(lines int) {
 		if v.rowOffset <= 0 {
 			break
 		}
+
+		ch := v.doc.chunks[v.curChunk]
+		if ch.e == v.rowOffset+v.size.rows-1 {
+			v.prevChunk()
+		}
+
 		v.rowOffset--
 	}
 }
@@ -73,6 +76,12 @@ func (v *Viewer) moveDown(lines int) {
 		if v.rowOffset+v.size.rows >= v.doc.len() {
 			break
 		}
+
+		ch := v.doc.chunks[v.curChunk]
+		if ch.s == v.rowOffset {
+			v.nextChunk()
+		}
+
 		v.rowOffset++
 	}
 }
@@ -83,6 +92,18 @@ func (v *Viewer) beginingOfRows() {
 
 func (v *Viewer) endOfRows() {
 	v.rowOffset = v.doc.len() - v.size.rows
+}
+
+func (v *Viewer) prevChunk() {
+	if v.curChunk > 0 {
+		v.curChunk--
+	}
+}
+
+func (v *Viewer) nextChunk() {
+	if v.curChunk < len(v.doc.chunks)-1 {
+		v.curChunk++
+	}
 }
 
 func (v Viewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -107,20 +128,50 @@ func (v Viewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			v.beginingOfRows()
 		case "G", ">":
 			v.endOfRows()
+		case "ctrl+n":
+			v.nextChunk()
+		case "ctrl+p":
+			v.prevChunk()
+		case "enter":
+			s := v.doc.chunks[v.curChunk].s
+			e := v.doc.chunks[v.curChunk].e
+			b := stripNewLines(v.doc.lines[s : e+1])
+			dispatchCmd(b)
+			//fmt.Fprintf(os.Stderr, "%s", string(b))
 		}
 	case tea.WindowSizeMsg:
 		v.size.cols = msg.Width
 		v.size.rows = msg.Height
 	}
 
+	v.scroll()
+
 	return v, nil
 }
 
+func (v *Viewer) scroll() {
+	ch := v.doc.chunks[v.curChunk]
+	if ch.s < v.rowOffset {
+		v.rowOffset = ch.s
+	}
+
+	if ch.e >= v.rowOffset+v.size.rows {
+		v.rowOffset = ch.e - v.size.rows + 1
+	}
+}
+
 func (v Viewer) drawRows() string {
+	ch := v.doc.chunks[v.curChunk]
 	var builder strings.Builder
 	for screenY := 0; screenY < v.size.rows; screenY++ {
 		docY := screenY + v.rowOffset
 		if docY < v.doc.len() {
+			fringe := "  "
+			if ch.containsAt(docY) {
+				fringe = "❱ "
+			}
+
+			builder.WriteString(fringe)
 			builder.WriteString(v.doc.lines[docY])
 		} else {
 			builder.WriteString("~")
