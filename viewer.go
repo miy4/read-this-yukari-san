@@ -64,7 +64,7 @@ func (v *Viewer) moveUp(lines int) {
 		}
 
 		ch := v.doc.chunks[v.curChunk]
-		if ch.e == v.rowOffset+v.size.rows-1 {
+		if ch.e == v.rowOffset+v.size.rows-2 {
 			v.prevChunk()
 		}
 
@@ -74,7 +74,7 @@ func (v *Viewer) moveUp(lines int) {
 
 func (v *Viewer) moveDown(lines int) {
 	for i := 0; i < lines; i++ {
-		if v.rowOffset+v.size.rows >= v.doc.len() {
+		if v.rowOffset+v.size.rows-1 >= v.doc.len() {
 			break
 		}
 
@@ -92,7 +92,7 @@ func (v *Viewer) beginingOfRows() {
 }
 
 func (v *Viewer) endOfRows() {
-	v.rowOffset = v.doc.len() - v.size.rows
+	v.rowOffset = v.doc.len() - v.size.rows + 1
 }
 
 func (v *Viewer) prevChunk() {
@@ -118,13 +118,13 @@ func (v Viewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "down", "j":
 			v.moveDown(1)
 		case "pgup", "b":
-			v.moveUp(v.size.rows)
+			v.moveUp(v.size.rows - 1)
 		case "pgdown", " ":
-			v.moveDown(v.size.rows)
+			v.moveDown(v.size.rows - 1)
 		case "ctrl+u", "u":
-			v.moveUp(v.size.rows / 2)
+			v.moveUp((v.size.rows - 1) / 2)
 		case "ctrl+d", "d":
-			v.moveDown(v.size.rows / 2)
+			v.moveDown((v.size.rows - 1) / 2)
 		case "g", "<":
 			v.beginingOfRows()
 		case "G", ">":
@@ -156,8 +156,8 @@ func (v *Viewer) scroll() {
 		v.rowOffset = ch.s
 	}
 
-	if ch.e >= v.rowOffset+v.size.rows {
-		v.rowOffset = ch.e - v.size.rows + 1
+	if ch.e >= v.rowOffset+v.size.rows-1 {
+		v.rowOffset = ch.e - v.size.rows + 2
 	}
 }
 
@@ -166,7 +166,7 @@ var styleMarker = lg.NewStyle().Foreground(lg.Color("13"))
 func (v Viewer) drawRows() string {
 	ch := v.doc.chunks[v.curChunk]
 	var builder strings.Builder
-	for screenY := 0; screenY < v.size.rows; screenY++ {
+	for screenY := 0; screenY < v.size.rows-1; screenY++ {
 		docY := screenY + v.rowOffset
 		if docY < v.doc.len() {
 			fringe := "  "
@@ -180,15 +180,29 @@ func (v Viewer) drawRows() string {
 			builder.WriteString("~")
 		}
 
-		if screenY < v.size.rows-1 {
-			builder.WriteString("\n")
-		}
+		builder.WriteString("\n")
 	}
 	return builder.String()
 }
 
+var styleStatus = lg.NewStyle().Foreground(lg.AdaptiveColor{Light: "7", Dark: "0"}).Background(lg.AdaptiveColor{Light: "0", Dark: "7"})
+
+func (v Viewer) drawStatus() string {
+	filename := v.in
+	lines := v.rowOffset + v.size.rows - 1
+	if lines > v.doc.len() {
+		lines = v.doc.len()
+	}
+	totalLines := v.doc.len()
+	percent := float64(lines) / float64(totalLines) * 100.0
+	s := fmt.Sprintf("%s %d/%d [%.0f%%]", filename, lines, totalLines, percent)
+	return styleStatus.Render(s)
+}
+
 func (v Viewer) View() string {
-	return v.drawRows()
+	s := v.drawRows()
+	s += v.drawStatus()
+	return s
 }
 
 func Run() {
