@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	lg "github.com/charmbracelet/lipgloss"
 )
 
 type Viewer struct {
@@ -160,6 +161,8 @@ func (v *Viewer) scroll() {
 	}
 }
 
+var styleMarker = lg.NewStyle().Foreground(lg.Color("13"))
+
 func (v Viewer) drawRows() string {
 	ch := v.doc.chunks[v.curChunk]
 	var builder strings.Builder
@@ -168,7 +171,7 @@ func (v Viewer) drawRows() string {
 		if docY < v.doc.len() {
 			fringe := "  "
 			if ch.containsAt(docY) {
-				fringe = "❱ "
+				fringe = styleMarker.Render("❱ ")
 			}
 
 			builder.WriteString(fringe)
