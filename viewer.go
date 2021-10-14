@@ -53,6 +53,10 @@ func NewViewer() (Viewer, error) {
 	}, nil
 }
 
+func (v *Viewer) chunk() *chunk {
+	return v.doc.chunks[v.curChunk]
+}
+
 func (v Viewer) Init() tea.Cmd {
 	return nil
 }
@@ -89,10 +93,18 @@ func (v *Viewer) moveDown(lines int) {
 
 func (v *Viewer) beginingOfRows() {
 	v.rowOffset = 0
+
+	for v.chunk().e >= v.rowOffset+v.size.rows-1 && v.curChunk > 0 {
+		v.prevChunk()
+	}
 }
 
 func (v *Viewer) endOfRows() {
 	v.rowOffset = v.doc.len() - v.size.rows + 1
+
+	for v.chunk().s < v.rowOffset && v.curChunk < len(v.doc.chunks)-1 {
+		v.nextChunk()
+	}
 }
 
 func (v *Viewer) prevChunk() {
