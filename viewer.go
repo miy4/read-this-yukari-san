@@ -91,7 +91,7 @@ func (v *Viewer) moveDown(lines int) {
 	}
 }
 
-func (v *Viewer) beginingOfRows() {
+func (v *Viewer) beginningOfRows() {
 	v.rowOffset = 0
 
 	for v.chunk().e >= v.rowOffset+v.size.rows-1 && v.curChunk > 0 {
@@ -138,7 +138,7 @@ func (v Viewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+d", "d":
 			v.moveDown((v.size.rows - 1) / 2)
 		case "g", "<":
-			v.beginingOfRows()
+			v.beginningOfRows()
 		case "G", ">":
 			v.endOfRows()
 		case "ctrl+n":
